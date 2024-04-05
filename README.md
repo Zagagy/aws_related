@@ -6,7 +6,7 @@ This repository contains the following applications:
 
 2. Image Subject Line Generator App: An application leveraging AWS Claude Bedrock's image processing and AI capabilities to generate subject lines for images. This app demonstrates integrating AWS's AI services to extract meaningful context from images and generate descriptive subject lines.
 
-3. Prompt Multiple LLMs: An application that gives the user the ability to query each one of the major LLMS with his prompt
+3. Prompt Multiple LLMs: An application that gives the user the ability to query each one of the major LLMS with his prompt.
 
 
 ## Getting Started
