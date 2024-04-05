@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Image and Analyze</title>
+    <style>
+        table {
+            width: 50%;
+            border-collapse: collapse;
+        }
+        td, th {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .header-wrapper {
+            align-items: center;
+            background-color: #353535;
+            color: #fff;
+            display: flex;
+            height: 5vh;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+        .header-title {
+            font-size: 20px;
+        }
+        #preview { 
+            position: absolute;
+            top: 9vh;
+            right: 8px;
+            max-width: 24vw;
+            display: none;
+        }
+        .grayedOut {
+            opacity: 0.05;
+        }
+        .token-inputs {
+            width: 20vw;
+        }
+        #loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="header-wrapper"><h1 class="header-title">Images Subjectlines Suggester</h1><div class="search-bar-wrapper"></div></div></div></div></div>
+<br/>
+<div align="center">
+    <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+        <table>
+            <tr>
+                <th><label for="file-input">Select Image File:</label></th>
+                <td><input type="file" name="file" id="file-input" onchange="previewImage();"></td>
+            </tr>
+            <tr>
+                <th><label for="prompt-input">Enter Prompt:</label></th>
+                <td><textarea id="prompt-input" rows="4" cols="50"></textarea></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center;"><input id="analyze" type="submit" value="Analyze"></td>
+            </tr>
+        </table>
+    </form>
+    <br />
+    <script>
+
+    function getBase64(img, preview) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Convert the canvas to a data URL, reducing the quality
+        const reducedQualityImage = canvas.toDataURL('image/jpeg', 0.5); // Adjust the quality as needed
+
+        if (preview !== null) {
+            // Use this reduced quality image for preview and storage
+            preview.src = reducedQualityImage; // Update the preview image
+            preview.style.display = 'block'; // Make sure the preview is visible
+        }
+
+        // Extract the base64 part of the reduced quality image and store it
+        const base64Image = reducedQualityImage.split(",")[1];
+        return base64Image;
+    }
+
+    function previewImage() {
+        var preview = document.getElementById('preview');
+        var file    = document.getElementById('file-input').files[0];
+        var reader  = new FileReader();
+
+        reader.onloadend = function (e) {
+            const img = new Image();
+            img.onload = function() {
+                // Create a canvas with the same dimensions as the image
+                previewDomElement = preview;
+                base64Image = getBase64(img, previewDomElement);
+                sessionStorage.setItem('base64Image', base64Image);
+            };
+            img.src = e.target.result; // Set the src of the image to the FileReader's result
+        };
+
+        if (file) {
+            reader.readAsDataURL(file);
+        } else {
+            preview.src = "";
+            preview.style.display = 'none';
+        }
+    }
+
+    function refrehPage() {
+        window.location.reload();
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const base64Image1 = sessionStorage.getItem('base64Image1');
+        const promptInput = document.getElementById('prompt-input').value;
+
+        let bodyObj = {
+            image: base64Image1,
+            prompt: promptInput
+        };
+        
+        midHeader = document.getElementById('loading');
+        midHeader.style.display = 'block';
+
+        grayedOutArea = document.getElementsByClassName('grayedOut');
+        grayedOutArea[0].className = '';
+
+        // Record the start time
+        const startTime = new Date();
+        const LAMBDA_URL = 'TODO'
+        fetch(LAMBDA_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bodyObj)
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Processing response and setting inner text
+            midHeader.innerText = 'Analysis Result:';
+            jsonStr = data.content[0].text.replaceAll('\n','').replaceAll("'","");
+            firstIndex = jsonStr.indexOf('{');
+            lastIndex = jsonStr.indexOf('}');
+            jsonStr = jsonStr.substring(firstIndex, lastIndex+1);
+            res = JSON.parse(jsonStr);
+            document.getElementById('s1').textContent = res['s1'] || "N/A";
+
+            // Record the end time
+            const endTime = new Date();
+            const timeTaken = (endTime - startTime) / 1000;
+
+            document.getElementById('time').textContent = `Fetch call took ${timeTaken} seconds.`;
+
+            sessionStorage.removeItem('base64Image1');
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Still calculate time if an error occurs
+            const endTime = new Date();
+            const timeTaken = (endTime - startTime) / 1000;
+            console.log(`Fetch call (with error) took ${timeTaken} seconds.`);
+        });
+
+      
+    });
+
+    </script>
+    <h2 id="loading">Loading...</h2>
+    <table id="result-table" class="grayedOut">
+        <tr>
+            <th>Subject </th>
+            <td id="s1">N/A</td>
+        </tr>
+    </table>
+    <img id="preview">
+</div>
+</body>
+</html>
